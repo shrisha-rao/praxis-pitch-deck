@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Praxis — GenAI eDiscovery</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+        /* ── Design tokens (Power Design: 60-30-10 + 8pt grid) ── */
+        :root {
+            --bg: #F9FAFB;
+            --ink: #111827;
+            --mid: #4B5563;
+            --muted: #9CA3AF;
+            --accent: #2563EB;
+            --accent-lt: #EFF6FF;
+            --accent-warm: #F59E0B;
+            --white: #FFFFFF;
+            --dark-bg: #0B1423;
+            --dark-2: #132040;
+            --rule: #E5E7EB;
+            --rule-light: #F3F4F6;
+
+            --t-hero: clamp(2.6rem, 5.6vw, 72px);
+            --t-h1: clamp(1.8rem, 3.75vw, 48px);
+            --t-h2: clamp(1.4rem, 2.8vw, 36px);
+            --t-h3: clamp(1.1rem, 1.9vw, 24px);
+            --t-body: clamp(0.9rem, 1.4vw, 18px);
+            --t-sm: clamp(0.8rem, 1.17vw, 15px);
+            --t-xs: clamp(0.7rem, 1.02vw, 13px);
+
+            --r1: 1.25;
+            --sp: 8px;
+            --sz: clamp(1.2rem, 5vw, 64px);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: #0B1423; /* Dark cinematic background to frame the slides */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            cursor: pointer; /* Indicates the screen is clickable */
+        }
+
+        /* ── Presentation Wrapper ── */
+        #presentation {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 1280px;
+            max-height: 100%;
+            aspect-ratio: 1280 / 720;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* ── Slide shell ── */
+        .slide {
+            position: absolute;
+            top: 0; 
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            padding: var(--sz);
+            display: flex;
+            flex-direction: column;
+            border-radius: 8px;
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.1);
+            
+            /* Presentation Transitions */
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: scale(0.97);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            pointer-events: auto;
+            transform: scale(1);
+            z-index: 10;
+        }
+
+        /* slide counter */
+        .slide::after {
+            content: attr(data-n);
+            position: absolute;
+            bottom: clamp(10px, 1.5vw, 20px);
+            right: var(--sz);
+            font-size: var(--t-xs);
+            color: var(--muted);
+            font-weight: 500;
+            letter-spacing: .04em;
+            z-index: 2;
+        }
+
+        /* ── Wordmark — bottom-left every slide ── */
+        .wordmark {
+            position: absolute;
+            bottom: clamp(10px, 1.5vw, 20px);
+            left: var(--sz);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            z-index: 2;
+        }
+        .wordmark-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+        .wordmark-text {
+            font-size: var(--t-xs);
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .wordmark-text.light {
+            color: #6B7FA3;
+        }
+
+        /* ── SLIDE 01 — HERO (dark) ── */
+        .s01 {
+            background: var(--dark-bg);
+            padding: var(--sz);
+        }
+        .s01 .eyebrow {
+            font-size: var(--t-xs);
+            font-weight: 600;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: clamp(12px, 2vw, 24px);
+        }
+        .s01 h1 {
+            font-size: clamp(2.4rem, 5vw, 64px);
+            font-weight: 800;
+            line-height: 1.05;
+            color: var(--white);
+            max-width: 700px;
+            margin-bottom: clamp(16px, 2.5vw, 32px);
+        }
+        .s01 h1 span {
+            color: var(--accent);
+        }
+        .s01 .sub {
+            font-size: var(--t-h3);
+            font-weight: 400;
+            color: #94A3B8;
+            max-width: 560px;
+            line-height: 1.55;
+        }
+        .s01 .hero-stat {
+            position: absolute;
+            right: var(--sz);
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: right;
+            z-index: 1;
+            max-width: 30%;
+        }
+        .s01 .hero-stat .big {
+            font-size: clamp(4rem, 9.4vw, 120px);
+            font-weight: 800;
+            line-height: 1;
+            color: var(--accent);
+            opacity: .18;
+            word-break: keep-all;
+        }
+        .s01 .hero-stat .label {
+            font-size: var(--t-sm);
+            color: #6B7FA3;
+            font-weight: 500;
+        }
+        .s01 .wordmark-text {
+            color: #4A6490;
+        }
+        .s01 .wordmark-dot {
+            background: #4A6490;
+        }
+
+        /* ── slide label ── */
+        .label-tag {
+            font-size: var(--t-xs);
+            font-weight: 600;
+            letter-spacing: .14em;
+            text-transform: uppercase;
+            color: var(--accent);
+            margin-bottom: clamp(8px, 1.2vw, 16px);
+        }
+
+        /* ── headline ── */
+        h2.slide-h {
+            font-size: var(--t-h1);
+            font-weight: 800;
+            line-height: 1.1;
+            color: var(--ink);
+            margin-bottom: clamp(20px, 3vw, 40px);
+            max-width: 680px;
+        }
+        h2.slide-h span {
+            color: var(--accent);
+        }
+
+        /* ── SLIDE 02 — Problem (4 pain-point cards) ── */
+        .pain-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: clamp(8px, 1.25vw, 16px);
+            margin-top: auto;
+            flex: 1;
+            align-content: end;
+        }
+        .pain-card {
+            background: var(--white);
+            border-radius: 12px;
+            padding: clamp(16px, 2.5vw, 32px) clamp(12px, 1.9vw, 24px);
+            border: 1px solid var(--rule);
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .pain-card .pain-num {
+            font-size: clamp(1.6rem, 3.1vw, 40px);
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 8px;
+        }
+        .pain-card .pain-title {
+            font-size: clamp(0.8rem, 1.25vw, 16px);
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 4px;
+        }
+        .pain-card .pain-body {
+            font-size: var(--t-xs);
+            color: var(--mid);
+            line-height: 1.55;
+        }
+
+        /* ── SLIDE 03 — The hidden cost ── */
+        .s03 {
+            background: var(--dark-bg);
+        }
+        .s03 .wordmark-dot {
+            background: #4A6490;
+        }
+        .s03 .wordmark-text {
+            color: #4A6490;
+        }
+        .s03 .label-tag {
+            color: #60A5FA;
+        }
+
+        .cost-bar-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            gap: clamp(12px, 1.6vw, 20px);
+            max-width: 660px;
+        }
+        .cost-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        .cost-row-label {
+            width: clamp(120px, 16vw, 200px);
+            font-size: var(--t-sm);
+            font-weight: 600;
+            color: #94A3B8;
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .cost-bar-bg {
+            flex: 1;
+            height: clamp(36px, 3.75vw, 48px);
+            background: rgba(255, 255, 255, .06);
+            border-radius: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+        .cost-bar-fill {
+            height: 100%;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            padding-left: 16px;
+            font-size: var(--t-sm);
+            font-weight: 700;
+            color: var(--white);
+            white-space: nowrap;
+        }
+        .fill-accent {
+            background: var(--accent);
+        }
+        .fill-dim {
+            background: rgba(255, 255, 255, .12);
+            color: #94A3B8;
+        }
+        .fill-dimmer {
+            background: rgba(255, 255, 255, .06);
+            color: #6B7280;
+        }
+
+        .s03 h2 {
+            color: var(--white);
+            max-width: 700px;
+        }
+        .s03 .callout {
+            position: absolute;
+            right: var(--sz);
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: center;
+            padding: clamp(16px, 2.5vw, 32px);
+            border: 1px solid rgba(37, 99, 235, .35);
+            border-radius: 16px;
+            background: rgba(37, 99, 235, .08);
+            width: clamp(160px, 19vw, 240px);
+            z-index: 1;
+            max-width: 28%;
+        }
+        .s03 .callout .big {
+            font-size: clamp(2rem, 4.4vw, 56px);
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+        }
+        .s03 .callout .sm {
+            font-size: var(--t-xs);
+            color: #94A3B8;
+            margin-top: 8px;
+            line-height: 1.5;
+        }
+
+        /* ── SLIDE 04 — Three Eras ── */
+        .eras-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(8px, 1.25vw, 16px);
+            flex: 1;
+            align-items: stretch;
+        }
+        .era-card {
+            border-radius: 12px;
+            padding: clamp(16px, 2.5vw, 32px) clamp(14px, 2.2vw, 28px);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 1.2vw, 16px);
+            border: 1px solid var(--rule);
+            background: var(--white);
+        }
+        .era-card.highlight {
+            background: var(--ink);
+            border-color: var(--accent);
+        }
+        .era-tag {
+            font-size: var(--t-xs);
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            padding: 4px 10px;
+            border-radius: 99px;
+            width: fit-content;
+        }
+        .era-tag.t1 {
+            background: #FEF3C7;
+            color: #92400E;
+        }
+        .era-tag.t2 {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+        .era-tag.t3 {
+            background: var(--accent-lt);
+            color: var(--accent);
+        }
+        .era-card .era-name {
+            font-size: var(--t-h3);
+            font-weight: 700;
+            line-height: 1.2;
+        }
+        .era-card:not(.highlight) .era-name {
+            color: var(--ink);
+        }
+        .era-card.highlight .era-name {
+            color: var(--white);
+        }
+        .era-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .era-step {
+            font-size: var(--t-xs);
+            padding: 8px 12px;
+            border-radius: 6px;
+            background: var(--bg);
+            color: var(--mid);
+            font-weight: 500;
+        }
+        .era-card.highlight .era-step {
+            background: rgba(255, 255, 255, .08);
+            color: #94A3B8;
+        }
+        .era-card.highlight .era-step.accent-step {
+            background: rgba(37, 99, 235, .18);
+            color: #93C5FD;
+        }
+        .era-outcome {
+            margin-top: auto;
+            font-size: var(--t-sm);
+            font-weight: 600;
+        }
+        .era-card:not(.highlight) .era-outcome {
+            color: var(--mid);
+        }
+        .era-card.highlight .era-outcome {
+            color: #34D399;
+        }
+
+        /* ── SLIDE 05 — How It Works (pipeline) ── */
+        .pipeline {
+            flex: 1;
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
+            padding-top: clamp(8px, 1vw, 16px);
+        }
+        .pipe-stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: clamp(8px, 1.2vw, 16px);
+            padding: 0 clamp(6px, 1vw, 16px);
+            position: relative;
+            min-width: 0;
+        }
+        .pipe-stage::after {
+            content: '→';
+            position: absolute;
+            right: -8px;
+            top: 36px;
+            font-size: clamp(16px, 1.9vw, 24px);
+            color: var(--muted);
+            font-weight: 300;
+            z-index: 1;
+        }
+        .pipe-stage:last-child::after {
+            display: none;
+        }
+        .pipe-icon {
+            width: clamp(50px, 6.25vw, 80px);
+            height: clamp(50px, 6.25vw, 80px);
+            border-radius: 20px;
+            background: var(--accent-lt);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(20px, 2.5vw, 32px);
+            flex-shrink: 0;
+        }
+        .pipe-icon.dark {
+            background: var(--ink);
+            color: #fff;
+        }
+        .pipe-num {
+            font-size: var(--t-xs);
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+        .pipe-title {
+            font-size: clamp(0.85rem, 1.4vw, 18px);
+            font-weight: 700;
+            color: var(--ink);
+        }
+        .pipe-body {
+            font-size: var(--t-xs);
+            color: var(--mid);
+            line-height: 1.6;
+            max-width: 200px;
+        }
+        .pipe-tech {
+            font-size: clamp(9px, 0.86vw, 11px);
+            font-weight: 600;
+            color: var(--accent);
+            background: var(--accent-lt);
+            padding: 3px 8px;
+            border-radius: 99px;
+            letter-spacing: .06em;
+            white-space: nowrap;
+        }
+
+        /* ── SLIDE 06 — Enron Benchmark ── */
+        .s06-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(16px, 2.5vw, 32px);
+            flex: 1;
+            align-items: start;
+            min-height: 0;
+        }
+
+        /* ── SLIDE 07 — Competitive Edge ── */
+        .diff-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            flex: 1;
+        }
+        .diff-table thead th {
+            padding: clamp(8px, 1vw, 12px) clamp(12px, 1.9vw, 24px);
+            font-size: var(--t-xs);
+            font-weight: 700;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            text-align: left;
+        }
+        .diff-table thead th:first-child {
+            width: clamp(140px, 17vw, 220px);
+        }
+        .diff-table thead th:nth-child(2) {
+            color: var(--mid);
+        }
+        .diff-table thead th:nth-child(3) {
+            color: var(--accent);
+            background: var(--accent-lt);
+            border-radius: 8px 8px 0 0;
+        }
+        .diff-table tbody tr {
+            border-bottom: 1px solid var(--rule);
+        }
+        .diff-table tbody td {
+            padding: clamp(8px, 1.1vw, 14px) clamp(12px, 1.9vw, 24px);
+            font-size: var(--t-sm);
+            vertical-align: middle;
+            border-bottom: 1px solid var(--rule);
+        }
+        .diff-table tbody td:first-child {
+            font-weight: 600;
+            color: var(--ink);
+        }
+        .diff-table tbody td:nth-child(2) {
+            color: var(--mid);
+        }
+        .diff-table tbody td:nth-child(3) {
+            background: rgba(37, 99, 235, .04);
+            color: var(--ink);
+            font-weight: 600;
+        }
+        .diff-table tbody tr:last-child td:nth-child(3) {
+            border-radius: 0 0 8px 8px;
+        }
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-size: clamp(9px, 0.86vw, 11px);
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 99px;
+            white-space: nowrap;
+        }
+        .pill.green {
+            background: #D1FAE5;
+            color: #065F46;
+        }
+        .pill.red {
+            background: #FEE2E2;
+            color: #991B1B;
+        }
+
+        /* ── SLIDE 08 — Market Opportunity ── */
+        .market-layout {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(16px, 2.5vw, 32px);
+            align-items: stretch;
+            min-height: 0;
+        }
+        .chart-container {
+            background: var(--white);
+            border: 1px solid var(--rule);
+            border-radius: 12px;
+            padding: clamp(12px, 1.9vw, 24px);
+            height: 100%;
+            min-height: 260px;
+        }
+	.market-stats {
+	display: flex;
+	flex-direction: column;
+	gap: clamp(6px, 1vw, 10px); /* <-- Reduced gap */
+	height: 100%; /* <-- Added to fill grid track */
+	justify-content: space-between; /* <-- Added for even distribution */
+	}
+
+
+.mstat {
+    background: var(--white);
+    border: 1px solid var(--rule);
+    border-radius: 12px;
+    padding: clamp(8px, 1.2vw, 14px) clamp(12px, 1.9vw, 24px); /* <-- Reduced vertical padding */
+    display: flex;
+    align-items: center;
+    gap: clamp(12px, 1.6vw, 20px);
+}
+
+.mstat .ms-num {
+    font-size: clamp(1.2rem, 2.2vw, 26px); /* <-- Scaled max size down from 32px to 26px */
+    font-weight: 800;
+    color: var(--accent);
+    white-space: nowrap;
+}
+
+.mstat .ms-sub {
+    font-size: var(--t-xs);
+    color: var(--mid);
+    margin-top: 2px;
+    line-height: 1.3; /* <-- Added tighter line height */
+     }
+			     
+        .mstat .ms-label {
+            font-size: var(--t-sm);
+            font-weight: 600;
+            color: var(--ink);
+        }
+
+        /* ── SLIDE 09 — Business Model ── */
+        .bm-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(8px, 1.25vw, 16px);
+            flex: 1;
+        }
+        .bm-card {
+            background: var(--white);
+            border: 1px solid var(--rule);
+            border-radius: 12px;
+            padding: clamp(16px, 2.5vw, 32px) clamp(12px, 1.9vw, 24px);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(6px, 1vw, 12px);
+        }
+        .bm-icon {
+            font-size: clamp(20px, 2.2vw, 28px);
+        }
+        .bm-title {
+            font-size: clamp(0.85rem, 1.4vw, 18px);
+            font-weight: 700;
+            color: var(--ink);
+        }
+        .bm-price {
+            font-size: var(--t-h3);
+            font-weight: 800;
+            color: var(--accent);
+        }
+        .bm-desc {
+            font-size: var(--t-xs);
+            color: var(--mid);
+            line-height: 1.6;
+        }
+        .bm-tag {
+            font-size: clamp(9px, 0.86vw, 11px);
+            font-weight: 600;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            padding: 3px 8px;
+            border-radius: 99px;
+            background: var(--accent-lt);
+            color: var(--accent);
+            width: fit-content;
+            margin-top: auto;
+        }
+
+        /* ── SLIDE 10 — Roadmap ── */
+        .road-wrap {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .road-line {
+            display: flex;
+            align-items: flex-start;
+            gap: 0;
+            position: relative;
+            margin-bottom: clamp(20px, 3vw, 40px);
+        }
+        .road-line::before {
+            content: '';
+            position: absolute;
+            top: 22px;
+            left: 24px;
+            right: 24px;
+            height: 2px;
+            background: var(--rule);
+            z-index: 0;
+        }
+        .road-milestone {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: clamp(8px, 1.2vw, 16px);
+            position: relative;
+            z-index: 1;
+            min-width: 0;
+        }
+        .road-dot {
+            width: clamp(36px, 3.75vw, 48px);
+            height: clamp(36px, 3.75vw, 48px);
+            border-radius: 50%;
+            border: 2px solid var(--rule);
+            background: var(--white);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(14px, 1.4vw, 18px);
+            flex-shrink: 0;
+        }
+        .road-dot.active {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: #fff;
+        }
+        .road-dot.done {
+            border-color: #10B981;
+            background: #10B981;
+            color: #fff;
+        }
+        .road-time {
+            font-size: var(--t-xs);
+            font-weight: 700;
+            color: var(--accent);
+            letter-spacing: .08em;
+            white-space: nowrap;
+        }
+        .road-title {
+            font-size: clamp(0.75rem, 1.17vw, 15px);
+            font-weight: 700;
+            color: var(--ink);
+            text-align: center;
+        }
+        .road-items {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: center;
+        }
+        .road-item {
+            font-size: var(--t-xs);
+            color: var(--mid);
+            text-align: center;
+        }
+
+        /* ── SLIDE 11 — Team ── */
+        .team-layout {
+            flex: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: clamp(20px, 3.75vw, 48px);
+            align-items: center;
+            min-height: 0;
+        }
+        .founder-card {
+            background: var(--white);
+            border: 1px solid var(--rule);
+            border-radius: 16px;
+            padding: clamp(20px, 3vw, 40px);
+            display: flex;
+            flex-direction: column;
+            gap: clamp(8px, 1.2vw, 16px);
+        }
+        .founder-avatar {
+            width: clamp(50px, 5.6vw, 72px);
+            height: clamp(50px, 5.6vw, 72px);
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), #7C3AED);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(18px, 2.2vw, 28px);
+            font-weight: 800;
+            color: var(--white);
+            flex-shrink: 0;
+        }
+        .founder-name {
+            font-size: var(--t-h3);
+            font-weight: 800;
+            color: var(--ink);
+        }
+        .founder-role {
+            font-size: var(--t-sm);
+            color: var(--accent);
+            font-weight: 600;
+        }
+        .founder-creds {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .cred {
+            display: flex;
+            align-items: flex-start;
+            gap: 10px;
+            font-size: var(--t-sm);
+            color: var(--mid);
+            line-height: 1.5;
+        }
+        .cred::before {
+            content: '—';
+            color: var(--accent);
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+        .org-logos {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+        .org-chip {
+            font-size: clamp(9px, 0.86vw, 11px);
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 6px;
+            background: var(--bg);
+            border: 1px solid var(--rule);
+            color: var(--mid);
+            white-space: nowrap;
+        }
+        .team-right {
+            display: flex;
+            flex-direction: column;
+            gap: clamp(12px, 1.9vw, 24px);
+        }
+        .seeking-title {
+            font-size: var(--t-h3);
+            font-weight: 700;
+            color: var(--ink);
+            margin-bottom: 4px;
+        }
+        .role-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px dashed var(--rule);
+            font-size: var(--t-sm);
+            font-weight: 600;
+            color: var(--mid);
+            background: var(--bg);
+        }
+        .role-chip .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            flex-shrink: 0;
+        }
+        .roles-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        /* ── SLIDE 12 — CTA / Ask (dark) ── */
+        .s11 {
+            background: var(--dark-bg);
+        }
+        .s11 .label-tag {
+            color: #60A5FA;
+        }
+        .s11 h2 {
+            color: var(--white);
+            margin-bottom: clamp(16px, 2.5vw, 32px);
+            max-width: 700px;
+        }
+        .s11 .ask-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: clamp(8px, 1.25vw, 16px);
+            margin-top: auto;
+        }
+        .ask-card {
+            border: 1px solid rgba(255, 255, 255, .1);
+            border-radius: 12px;
+            padding: clamp(16px, 2.2vw, 28px) clamp(12px, 1.9vw, 24px);
+            background: rgba(255, 255, 255, .03);
+        }
+        .ask-card .ask-num {
+            font-size: clamp(1.6rem, 3.1vw, 40px);
+            font-weight: 800;
+            color: var(--accent);
+            line-height: 1;
+            margin-bottom: 12px;
+        }
+        .ask-card .ask-title {
+            font-size: clamp(0.8rem, 1.25vw, 16px);
+            font-weight: 700;
+            color: var(--white);
+            margin-bottom: 8px;
+        }
+        .ask-card .ask-body {
+            font-size: var(--t-xs);
+            color: #94A3B8;
+            line-height: 1.6;
+        }
+        .s11 .contact {
+            position: absolute;
+            right: var(--sz);
+            top: 50%;
+            transform: translateY(-50%);
+            text-align: right;
+            z-index: 1;
+            max-width: 30%;
+        }
+        .s11 .contact .email {
+            font-size: var(--t-h3);
+            font-weight: 700;
+            color: var(--accent);
+            margin-top: 8px;
+            word-break: break-all;
+        }
+        .s11 .contact .ctitle {
+            font-size: var(--t-xs);
+            color: #6B7FA3;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+        .s11 .wordmark-dot {
+            background: #4A6490;
+        }
+        .s11 .wordmark-text {
+            color: #4A6490;
+        }
+
+        /* ── NAV HINT ── */
+        .nav-hint {
+            position: fixed;
+            top: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 13px;
+            font-family: 'Inter', sans-serif;
+            letter-spacing: .04em;
+            font-weight: 500;
+            z-index: 100;
+            pointer-events: none;
+        }
+
+        /* ── Responsive: mobile screen overrides ── */
+        @media (max-width: 680px) {
+            #presentation {
+                aspect-ratio: auto; /* Remove aspect ratio constraint so slides can fill tall mobile screens */
+                height: 100vh; 
+                max-width: 100vw;
+            }
+            .slide {
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .pain-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .eras-grid {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            .pipeline {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+            .pipe-stage {
+                flex: 1 1 45%;
+                min-width: 120px;
+            }
+            .pipe-stage::after {
+                display: none;
+            }
+            .s06-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                overflow-y: auto;
+            }
+            .market-layout {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            .bm-grid {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            .road-line {
+                flex-wrap: wrap;
+                gap: 8px;
+                justify-content: center;
+            }
+            .road-line::before {
+                display: none;
+            }
+            .road-milestone {
+                flex: 0 0 auto;
+                min-width: 80px;
+            }
+            .team-layout {
+                grid-template-columns: 1fr;
+                gap: 12px;
+                overflow-y: auto;
+            }
+            .s11 .ask-grid {
+                grid-template-columns: 1fr;
+                gap: 6px;
+            }
+            .s11 .contact {
+                position: relative;
+                right: auto;
+                top: auto;
+                transform: none;
+                text-align: left;
+                max-width: 100%;
+                margin-top: 12px;
+            }
+            .s03 .callout {
+                position: relative;
+                right: auto;
+                top: auto;
+                transform: none;
+                width: 100%;
+                max-width: 100%;
+                margin-top: 12px;
+                text-align: center;
+            }
+            .s01 .hero-stat {
+                position: relative;
+                right: auto;
+                top: auto;
+                transform: none;
+                text-align: left;
+                max-width: 100%;
+                margin-top: 8px;
+            }
+            .hero-stat .big {
+                font-size: 3rem !important;
+                opacity: .25 !important;
+            }
+            .cost-bar-wrap {
+                max-width: 100%;
+            }
+            .cost-row-label {
+                width: 80px;
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <p class="nav-hint">12 slides — click anywhere to advance</p>
+
+    <div id="presentation">
+        <div class="slide s01" data-n="01 / 11">
+            <div class="eyebrow">Deep-Tech Legal Intelligence</div>
+            <h1>Evidence review,<br><span>redesigned</span><br>from the graph up.</h1>
+            <p class="sub">Praxis combines knowledge graphs and generative AI to surface critical evidence 10× faster — with structural proof, not hallucinations.</p>
+
+            <div class="hero-stat">
+                <div class="big">&gt;50%</div>
+                <div class="label">target review cost reduction</div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide" data-n="02 / 11">
+            <div class="label-tag">The Problem</div>
+            <h2 class="slide-h">eDiscovery is <span>expensive,</span><br>slow, and structurally broken.</h2>
+
+            <div class="pain-grid">
+                <div class="pain-card">
+                    <div class="pain-num">$1.3M+</div>
+                    <div class="pain-title">Average case cost</div>
+                    <div class="pain-body">94% of spend goes to document review and processing — before a single courtroom argument.</div>
+                </div>
+                <div class="pain-card">
+                    <div class="pain-num">97%</div>
+                    <div class="pain-title">Collected data is never produced</div>
+                    <div class="pain-body">Firms sift through mountains of irrelevant content. Keyword search can't distinguish signal from noise.</div>
+                </div>
+                <div class="pain-card">
+                    <div class="pain-num">Weeks</div>
+                    <div class="pain-title">Time to first insight</div>
+                    <div class="pain-body">Manual review armies and sequential workflows create severe time pressure exactly when stakes are highest.</div>
+                </div>
+                <div class="pain-card">
+                    <div class="pain-num">Blind</div>
+                    <div class="pain-title">Critical connections missed</div>
+                    <div class="pain-body">Keyword tools match words, not intent. Code words, aliases, and relationships between parties are invisible.</div>
+                </div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide s03" data-n="03 / 11">
+            <div class="label-tag">Where the money goes</div>
+            <h2 class="slide-h" style="color:#fff; max-width:560px;">Document review alone is a <span style="color:#60A5FA;">$10.8 billion</span> annual problem.</h2>
+
+            <div class="cost-bar-wrap" style="max-width:660px;">
+                <div class="cost-row">
+                    <div class="cost-row-label">Document Review</div>
+                    <div class="cost-bar-bg">
+                        <div class="cost-bar-fill fill-accent" style="width:64%;">64% of all spend</div>
+                    </div>
+                </div>
+                <div class="cost-row">
+                    <div class="cost-row-label">Processing</div>
+                    <div class="cost-bar-bg">
+                        <div class="cost-bar-fill fill-dim" style="width:20%;">20%</div>
+                    </div>
+                </div>
+                <div class="cost-row">
+                    <div class="cost-row-label">Collection</div>
+                    <div class="cost-bar-bg">
+                        <div class="cost-bar-fill fill-dimmer" style="width:16%;">16%</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="s03 callout">
+                <div class="big">$42B</div>
+                <div class="sm">document review as share of total US litigation spend<br><br><span style="color:#60A5FA; font-weight:700;">per year</span></div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide" data-n="04 / 11">
+            <div class="label-tag">Our Approach</div>
+            <h2 class="slide-h" style="margin-bottom:clamp(12px,2vw,24px);">We're building the <span>third era</span> of discovery.</h2>
+
+            <div class="eras-grid">
+                <div class="era-card">
+                    <div class="era-tag t1">Era 1 — Legacy</div>
+                    <div class="era-name">Keyword Search</div>
+                    <div class="era-steps">
+                        <div class="era-step">Collect everything</div>
+                        <div class="era-step">Run keyword filters</div>
+                        <div class="era-step">Weeks of manual reading</div>
+                    </div>
+                    <div class="era-outcome" style="color:#D97706;">Slow. Expensive. Misses intent.</div>
+                </div>
+
+                <div class="era-card">
+                    <div class="era-tag t2">Era 2 — AI Add-ons</div>
+                    <div class="era-name">Brute-Force LLM</div>
+                    <div class="era-steps">
+                        <div class="era-step">Collect everything</div>
+                        <div class="era-step">Feed to LLM</div>
+                        <div class="era-step">High cost, high noise</div>
+                    </div>
+                    <div class="era-outcome" style="color:#DC2626;">Cost scales with volume. Hallucinations.</div>
+                </div>
+
+                <div class="era-card highlight">
+                    <div class="era-tag t3">Era 3 — Praxis</div>
+                    <div class="era-name" style="color:#fff;">Relational Intelligence</div>
+                    <div class="era-steps">
+                        <div class="era-step accent-step">Build relationship map</div>
+                        <div class="era-step accent-step">Rank by structural relevance</div>
+                        <div class="era-step accent-step">Targeted AI audit of top 1%</div>
+                    </div>
+                    <div class="era-outcome">Cost scales with relevance. Grounded evidence.</div>
+                </div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide" data-n="05 / 11">
+            <div class="label-tag">Technology</div>
+            <h2 class="slide-h" style="margin-bottom:clamp(8px,1.2vw,16px);">Three stages. From raw data<br>to <span>verified evidence.</span></h2>
+
+            <div class="pipeline">
+                <div class="pipe-stage">
+                    <div class="pipe-icon">🗂️</div>
+                    <div class="pipe-num">Stage 1 — Build</div>
+                    <div class="pipe-title">Structural Mapping</div>
+                    <div class="pipe-body">Ingest all documents. Extract entities — people, aliases, orgs, timelines — and link them into a heterogeneous knowledge graph.</div>
+                    <div class="pipe-tech">Knowledge Graph · NER</div>
+                </div>
+
+                <div class="pipe-stage">
+                    <div class="pipe-icon">📊</div>
+                    <div class="pipe-num">Stage 2 — Rank</div>
+                    <div class="pipe-title">Relevance Scoring</div>
+                    <div class="pipe-body">GNN link prediction and centrality scoring surface the top 1% of documents with the highest structural signal. No brute-force LLM pass.</div>
+                    <div class="pipe-tech">GNN · Graph ML · Hybrid Retrieval</div>
+                </div>
+
+                <div class="pipe-stage">
+                    <div class="pipe-icon">🔍</div>
+                    <div class="pipe-num">Stage 3 — Reason</div>
+                    <div class="pipe-title">Cognitive Filtering</div>
+                    <div class="pipe-body">LLM reviews only the ranked documents, producing explainable evidence with reasoning chains that lawyers can cite and courts can trust.</div>
+                    <div class="pipe-tech">LLM-Assisted Review · Explainability</div>
+                </div>
+
+                <div class="pipe-stage">
+                    <div class="pipe-icon dark" style="font-size:clamp(16px,1.9vw,24px); color:#fff;">⚖️</div>
+                    <div class="pipe-num">Output</div>
+                    <div class="pipe-title">Verified Evidence</div>
+                    <div class="pipe-body">An evidence map, timeline, and ranked document set — grounded in structural proof, not semantic guess-work.</div>
+                    <div class="pipe-tech" style="background:#D1FAE5; color:#065F46;">&gt;50% cost reduction</div>
+                </div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide" data-n="06 / 12">
+            <div class="label-tag">Proof Point</div>
+            <h2 class="slide-h" style="margin-bottom:clamp(16px,2.5vw,32px);">We already proved it works.<br>On <span>real data.</span></h2>
+
+            <div class="s06-grid">
+                <div>
+                    <div style="font-size:var(--t-xs); font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:12px;">3,434 Enron emails · Topic 201 (California Power Trading) · 721 actually relevant</div>
+
+                    <table style="width:100%; border-collapse:separate; border-spacing:0; margin-top:8px;">
+                        <thead>
+                            <tr style="border-bottom:2px solid var(--rule);">
+                                <th style="padding:8px 0; font-size:var(--t-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); text-align:left;">Metric</th>
+                                <th style="padding:8px 10px; font-size:var(--t-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--mid); text-align:right;">Legacy</th>
+                                <th style="padding:8px 10px; font-size:var(--t-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--accent); text-align:right;">Praxis GNN</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr style="border-bottom:1px solid var(--rule);">
+                                <td style="padding:8px 0; font-size:var(--t-sm); font-weight:600; color:var(--ink);">Documents reviewed</td>
+                                <td style="padding:8px 10px; font-size:var(--t-sm); font-weight:700; color:var(--mid); text-align:right;">110</td>
+                                <td style="padding:8px 10px; font-size:var(--t-sm); font-weight:700; color:var(--accent); text-align:right;">515</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--rule);">
+                                <td style="padding:8px 0; font-size:var(--t-sm); font-weight:600; color:var(--ink);">Relevant found</td>
+                                <td style="padding:8px 10px; font-size:var(--t-sm); font-weight:700; color:#DC2626; text-align:right;">12</td>
+                                <td style="padding:8px 10px; font-size:var(--t-sm); font-weight:700; color:#10B981; text-align:right;">515</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--rule);">
+                                <td style="padding:8px 0; font-size:var(--t-sm); font-weight:600; color:var(--ink);">Relevant MISSED</td>
+                                <td style="padding:8px 10px; font-size:clamp(1.1rem,1.9vw,24px); font-weight:800; color:#DC2626; text-align:right;">503</td>
+                                <td style="padding:8px 10px; font-size:clamp(1.1rem,1.9vw,24px); font-weight:800; color:#10B981; text-align:right;">0</td>
+                            </tr>
+                            <tr style="border-bottom:1px solid var(--rule);">
+                                <td style="padding:8px 0; font-size:var(--t-sm); font-weight:600; color:var(--ink);">Precision</td>
+                                <td style="padding:8px 10px; font-size:var(--t-sm); font-weight:700; color:var(--mid); text-align:right;">10.9%</td>
+                                <td style="padding:8px 10px; font-size:var(--t-sm); font-weight:700; color:var(--accent); text-align:right;">100%</td>
+                            </tr>
+                            <tr>
+                                <td style="padding:8px 0; font-size:var(--t-sm); font-weight:600; color:var(--ink);">80% recall at</td>
+                                <td style="padding:8px 10px; font-size:var(--t-sm); font-weight:700; color:#DC2626; text-align:right;">Never</td>
+                                <td style="padding:8px 10px; font-size:var(--t-sm); font-weight:700; color:#10B981; text-align:right;">17.9%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+
+                    <div style="margin-top:10px; padding:8px 14px; background:#FEF3C7; border-left:4px solid #F59E0B; border-radius:6px;">
+                        <div style="font-size:var(--t-xs); font-weight:700; color:#92400E; margin-bottom:3px;">Why this matters</div>
+                        <div style="font-size:var(--t-xs); color:#78350F; line-height:1.5;">Keyword search missed <strong>70% of critical evidence</strong> (503 relevant docs). Praxis found every single one — reviewing only 15% of the corpus.</div>
+                    </div>
+                </div>
+
+                <div style="display:flex; flex-direction:column; gap:clamp(8px,1.2vw,16px); height:fit-content;">
+                    <div style="background:var(--ink); border-radius:16px; padding:clamp(14px,2.5vw,32px) clamp(16px,2.5vw,32px); text-align:center;">
+                        <div style="font-size:var(--t-xs); font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:#94A3B8; margin-bottom:10px;">Cost Impact (100k-doc case @ $300/hr)</div>
+                        <div style="font-size:clamp(2.6rem,5.6vw,72px); font-weight:800; line-height:1; color:#10B981; margin-bottom:6px;">$510k</div>
+                        <div style="font-size:var(--t-sm); color:#94A3B8; font-weight:600;">saved per case</div>
+                        <div style="height:1px; background:rgba(255,255,255,.1); margin:12px 0;"></div>
+                        <div style="font-size:clamp(1.4rem,2.5vw,32px); font-weight:800; color:var(--accent);">85%</div>
+                        <div style="font-size:var(--t-sm); color:#94A3B8; margin-top:2px;">cost reduction</div>
+                    </div>
+
+                    <div style="background:var(--white); border:1px solid var(--rule); border-radius:12px; padding:clamp(10px,1.5vw,18px);">
+                        <div style="font-size:var(--t-xs); font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px;">Dataset</div>
+                        <div style="font-size:var(--t-sm); color:var(--mid); line-height:1.6;">
+                            <strong style="color:var(--ink);">Enron Email Dataset</strong> — industry-standard benchmark for eDiscovery research. Topic 201 (California Power Trading) validated by TREC Legal Track reviewers.
+                        </div>
+                    </div>
+
+                    <div style="background:var(--accent-lt); border-radius:12px; padding:12px 14px; border:1px dashed var(--accent);">
+                        <div style="font-size:var(--t-sm); font-weight:700; color:var(--accent); margin-bottom:4px;">Next: Real case validation</div>
+                        <div style="font-size:var(--t-xs); color:var(--mid); line-height:1.5;">Design partner pilots with 2–3 law firms on live cases, secure VPC deployments.</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide" data-n="07 / 12">
+            <div class="label-tag">Competitive Edge</div>
+            <h2 class="slide-h" style="margin-bottom:clamp(12px,1.9vw,24px);">Surgical precision<br>vs. <span>brute force.</span></h2>
+
+            <table class="diff-table">
+                <thead>
+                    <tr>
+                        <th>Dimension</th>
+                        <th>Legacy / AI Add-ons</th>
+                        <th>✦ Praxis</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Review Method</td>
+                        <td>Keyword + brute-force LLM</td>
+                        <td>Knowledge graph + targeted LLM</td>
+                    </tr>
+                    <tr>
+                        <td>Context</td>
+                        <td>Local — isolated documents</td>
+                        <td>Global — full case relationship map</td>
+                    </tr>
+                    <tr>
+                        <td>Cost Scaling</td>
+                        <td><span class="pill red">↑ with data volume</span></td>
+                        <td><span class="pill green">↑ only with relevance</span></td>
+                    </tr>
+                    <tr>
+                        <td>Accuracy Risk</td>
+                        <td>Prone to AI hallucinations</td>
+                        <td>Grounded in structural evidence</td>
+                    </tr>
+                    <tr>
+                        <td>Output</td>
+                        <td>A list of search results</td>
+                        <td>Explainable AI + evidence map</td>
+                    </tr>
+                    <tr>
+                        <td>Misses</td>
+                        <td>Code words, aliases, intent</td>
+                        <td>Surfaces hidden network signals</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide" data-n="08 / 12">
+            <div class="label-tag">Market Opportunity</div>
+            <h2 class="slide-h" style="margin-bottom:clamp(12px,1.9vw,24px);">A <span>$16.9B</span> market growing at 10%+ annually — and AI is the inflection point.</h2>
+
+            <div class="market-layout">
+                <div class="chart-container">
+                    <svg viewBox="0 0 560 260" width="100%" height="100%" style="display:block;" preserveAspectRatio="xMidYMid meet">
+                        <text x="0" y="248" font-size="10" fill="#9CA3AF" font-family="Inter">0</text>
+                        <text x="0" y="190" font-size="10" fill="#9CA3AF" font-family="Inter">10B</text>
+                        <text x="0" y="133" font-size="10" fill="#9CA3AF" font-family="Inter">20B</text>
+                        <text x="0" y="76" font-size="10" fill="#9CA3AF" font-family="Inter">30B</text>
+                        <text x="0" y="18" font-size="10" fill="#9CA3AF" font-family="Inter">40B</text>
+                        <line x1="30" y1="245" x2="555" y2="245" stroke="#E5E7EB" stroke-width="1" />
+                        <line x1="30" y1="130" x2="555" y2="130" stroke="#E5E7EB" stroke-width="1" stroke-dasharray="4,4" />
+                        <rect x="38" y="173" width="48" height="72" fill="#DBEAFE" rx="4" />
+                        <text x="62" y="168" font-size="9" fill="#9CA3AF" text-anchor="middle" font-family="Inter">$12B</text>
+                        <rect x="97" y="163" width="48" height="82" fill="#BFDBFE" rx="4" />
+                        <text x="121" y="158" font-size="9" fill="#9CA3AF" text-anchor="middle" font-family="Inter">$15B</text>
+                        <rect x="156" y="144" width="48" height="101" fill="#93C5FD" rx="4" />
+                        <text x="180" y="139" font-size="9" fill="#60A5FA" text-anchor="middle" font-family="Inter">$17B</text>
+                        <rect x="215" y="133" width="48" height="112" fill="#2563EB" rx="4" />
+                        <text x="239" y="128" font-size="9" fill="#2563EB" font-weight="700" text-anchor="middle" font-family="Inter">$18.7B</text>
+                        <text x="239" y="285" font-size="9" fill="#2563EB" font-weight="700" text-anchor="middle" font-family="Inter">NOW</text>
+                        <rect x="274" y="121" width="48" height="124" fill="#1D4ED8" rx="4" />
+                        <text x="298" y="116" font-size="9" fill="#60A5FA" text-anchor="middle" font-family="Inter">$20.7B</text>
+                        <rect x="333" y="108" width="48" height="137" fill="#1E40AF" rx="4" />
+                        <text x="357" y="103" font-size="9" fill="#60A5FA" text-anchor="middle" font-family="Inter">$23B</text>
+                        <rect x="392" y="81" width="48" height="164" fill="#1E3A8A" rx="4" />
+                        <text x="416" y="76" font-size="9" fill="#60A5FA" text-anchor="middle" font-family="Inter">$25B</text>
+                        <rect x="451" y="56" width="48" height="189" fill="#172554" rx="4" />
+                        <text x="475" y="51" font-size="9" fill="#93C5FD" text-anchor="middle" font-family="Inter">$31.5B</text>
+                        <text x="62" y="258" font-size="9" fill="#9CA3AF" text-anchor="middle" font-family="Inter">2022</text>
+                        <text x="121" y="258" font-size="9" fill="#9CA3AF" text-anchor="middle" font-family="Inter">2023</text>
+                        <text x="180" y="258" font-size="9" fill="#9CA3AF" text-anchor="middle" font-family="Inter">2024</text>
+                        <text x="239" y="258" font-size="9" fill="#9CA3AF" text-anchor="middle" font-family="Inter">2025</text>
+                        <text x="298" y="258" font-size="9" fill="#9CA3AF" text-anchor="middle" font-family="Inter">2026</text>
+                        <text x="357" y="258" font-size="9" fill="#9CA3AF" text-anchor="middle" font-family="Inter">2027</text>
+                        <text x="416" y="258" font-size="9" fill="#9CA3AF" text-anchor="middle" font-family="Inter">2029</text>
+                        <text x="475" y="258" font-size="9" fill="#9CA3AF" text-anchor="middle" font-family="Inter">2030</text>
+                        <text x="555" y="25" font-size="10" fill="#2563EB" font-weight="700" text-anchor="end" font-family="Inter">CAGR: 10.1–10.7%</text>
+                    </svg>
+                </div>
+
+                <div class="market-stats">
+                    <div class="mstat">
+                        <div>
+                            <div class="ms-num">$16.9B</div>
+                            <div class="ms-label">Global TAM (2024)</div>
+                            <div class="ms-sub">Total eDiscovery software + services spend</div>
+                        </div>
+                    </div>
+                    <div class="mstat">
+                        <div>
+                            <div class="ms-num">$10.8B</div>
+                            <div class="ms-label">Document Review (2024)</div>
+                            <div class="ms-sub">64% of all eDiscovery spend — our direct target</div>
+                        </div>
+                    </div>
+                    <div class="mstat">
+                        <div>
+                            <div class="ms-num">$733M</div>
+                            <div class="ms-label">AI-in-eDiscovery by 2030</div>
+                            <div class="ms-sub">16.1% CAGR — fastest growing sub-segment</div>
+                        </div>
+                    </div>
+                    <div class="mstat">
+                        <div>
+                            <div class="ms-num">SME</div>
+                            <div class="ms-label">Our beachhead</div>
+                            <div class="ms-sub">Tech-savvy boutique firms & mid-size corporate legal — highest willingness-to-switch</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide" data-n="09 / 12">
+            <div class="label-tag">Business Model</div>
+            <h2 class="slide-h" style="margin-bottom:clamp(12px,1.9vw,24px);">Value-based SaaS —<br>pricing <span>aligned with outcomes.</span></h2>
+
+            <div class="bm-grid">
+                <div class="bm-card">
+                    <div class="bm-icon">🖥️</div>
+                    <div class="bm-title">Platform Subscription</div>
+                    <div class="bm-price">Per seat / month</div>
+                    <div class="bm-desc">Per-seat licence covering platform access, base support, and secure VPC hosting. Predictable budget for legal teams.</div>
+                    <div class="bm-tag">Recurring</div>
+                </div>
+
+                <div class="bm-card">
+                    <div class="bm-icon">📦</div>
+                    <div class="bm-title">Volume Ingestion</div>
+                    <div class="bm-price">Per GB processed</div>
+                    <div class="bm-desc">Scalable pricing tied to case complexity, not headcount. Costs grow only when the case demands it — aligning with client value.</div>
+                    <div class="bm-tag">Usage-based</div>
+                </div>
+
+                <div class="bm-card" style="border-color: var(--accent);">
+                    <div class="bm-icon">🧠</div>
+                    <div class="bm-title">AI Compute Credits</div>
+                    <div class="bm-price">High-margin</div>
+                    <div class="bm-desc">Premium fees for advanced GNN graph queries and LLM-assisted review passes. Highest margin tier, consumed on the most complex cases.</div>
+                    <div class="bm-tag" style="background: var(--ink); color: var(--white);">High margin</div>
+                </div>
+            </div>
+
+            <div style="margin-top:clamp(12px,1.9vw,24px); padding:clamp(10px,1.25vw,16px) clamp(12px,1.9vw,24px); background:var(--white); border:1px solid var(--rule); border-radius:10px; display:flex; gap:clamp(16px,3.75vw,48px); flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <div style="font-size:clamp(9px,0.86vw,11px); font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Go-to-Market</div>
+                    <div style="font-size:var(--t-sm); font-weight:600; color:var(--ink);">Land & Expand — Secure VPC pilot → firm-wide adoption as Time-to-Evidence outperforms legacy tools</div>
+                </div>
+                <div style="flex:1; min-width:200px;">
+                    <div style="font-size:clamp(9px,0.86vw,11px); font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:4px;">Initial Targets</div>
+                    <div style="font-size:var(--t-sm); font-weight:600; color:var(--ink);">Tech-forward boutique law firms · Mid-size corporate legal departments · RegTech compliance teams</div>
+                </div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide" data-n="10 / 12">
+            <div class="label-tag">Roadmap</div>
+            <h2 class="slide-h" style="margin-bottom:clamp(20px,3vw,40px);">MVP to enterprise<br>in <span>18 months.</span></h2>
+
+            <div class="road-wrap">
+                <div class="road-line">
+                    <div class="road-milestone">
+                        <div class="road-dot active">✓</div>
+                        <div class="road-time">Now</div>
+                        <div class="road-title">Foundation</div>
+                        <div class="road-items">
+                            <div class="road-item">Architecture validated</div>
+                            <div class="road-item">Research baseline set</div>
+                            <div class="road-item">Enron dataset benchmarking</div>
+                        </div>
+                    </div>
+
+                    <div class="road-milestone">
+                        <div class="road-dot" style="border-color: var(--accent);">🔵</div>
+                        <div class="road-time">6 Months</div>
+                        <div class="road-title">Core AI Engine</div>
+                        <div class="road-items">
+                            <div class="road-item">KG pipeline v1</div>
+                            <div class="road-item">GNN ranking module</div>
+                            <div class="road-item">LLM review integration</div>
+                        </div>
+                    </div>
+
+                    <div class="road-milestone">
+                        <div class="road-dot"></div>
+                        <div class="road-time">9 Months</div>
+                        <div class="road-title">Private Alpha</div>
+                        <div class="road-items">
+                            <div class="road-item">2–3 design-partner firms</div>
+                            <div class="road-item">Real case validation</div>
+                            <div class="road-item">Secure VPC deployments</div>
+                        </div>
+                    </div>
+
+                    <div class="road-milestone">
+                        <div class="road-dot"></div>
+                        <div class="road-time">12 Months</div>
+                        <div class="road-title">Pilot Metrics</div>
+                        <div class="road-items">
+                            <div class="road-item">Time-to-evidence data</div>
+                            <div class="road-item">Cost reduction proof</div>
+                            <div class="road-item">First paying customers</div>
+                        </div>
+                    </div>
+
+                    <div class="road-milestone">
+                        <div class="road-dot"></div>
+                        <div class="road-time">18 Months</div>
+                        <div class="road-title">Beta &amp; Scale</div>
+                        <div class="road-items">
+                            <div class="road-item">Open beta launch</div>
+                            <div class="road-item">Enterprise deployments</div>
+                            <div class="road-item">Series A fundraise</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:12px; margin-top:8px; flex-wrap:wrap;">
+                    <div style="display:flex; align-items:center; gap:8px; font-size:var(--t-xs); color:var(--mid);">
+                        <div style="width:12px;height:12px;border-radius:50%;background:#10B981;"></div>
+                        Current phase
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; font-size:var(--t-xs); color:var(--mid);">
+                        <div style="width:12px;height:12px;border-radius:50%;border:2px solid var(--accent);"></div>
+                        In progress
+                    </div>
+                    <div style="display:flex; align-items:center; gap:8px; font-size:var(--t-xs); color:var(--mid);">
+                        <div style="width:12px;height:12px;border-radius:50%;border:2px solid var(--rule); background:var(--white);"></div>
+                        Planned
+                    </div>
+                </div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide" data-n="11 / 12">
+            <div class="label-tag">Team</div>
+            <h2 class="slide-h" style="margin-bottom:clamp(16px,2.5vw,32px);">Deep technical expertise<br>meets <span>domain understanding.</span></h2>
+
+            <div class="team-layout">
+                <div class="founder-card">
+                    <div style="display:flex; gap:clamp(12px,1.6vw,20px); align-items:center;">
+                        <div class="founder-avatar">SR</div>
+                        <div>
+                            <div class="founder-name">Shrisha Rao</div>
+                            <div class="founder-role">Founder & CEO</div>
+                        </div>
+                    </div>
+
+                    <div class="founder-creds">
+                        <div class="cred">PhD & Postdoc in Computational Neuroscience — graph-native thinking from first principles</div>
+                        <div class="cred">Production-grade AI deployment & maintenance across research and industry</div>
+                        <div class="cred">End-user centric product development — built for lawyers, not data scientists</div>
+                        <div class="cred">Interdisciplinary background spanning ML/AI, data analysis & neuroscience</div>
+                    </div>
+
+                    <div class="org-logos">
+                        <div class="org-chip">Université Paris Descartes</div>
+                        <div class="org-chip">Janelia Research Campus</div>
+                        <div class="org-chip">Universität Tübingen</div>
+                        <div class="org-chip">Data & Health</div>
+                    </div>
+                </div>
+
+                <div class="team-right">
+                    <div>
+                        <div class="seeking-title">Key Advisors</div>
+                        <div style="height:8px;"></div>
+                        <div style="display:flex; flex-direction:column; gap:10px;">
+                            <div class="role-chip">
+                                <div class="dot"></div>
+                                <div><strong>Sumit Pai</strong> — Researcher & Engineer, GenAI (technical advisor)</div>
+                            </div>
+                            <div class="role-chip">
+                                <div class="dot"></div>
+                                <div><strong>Pedro Milcent</strong> — Strategic advisor & guidance</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="seeking-title">Actively Hiring</div>
+                        <div style="height:8px;"></div>
+                        <div class="roles-grid">
+                            <div class="role-chip">
+                                <div class="dot" style="background:#10B981;"></div>
+                                Graph ML / GNN Engineer
+                            </div>
+                            <div class="role-chip">
+                                <div class="dot" style="background:#F59E0B;"></div>
+                                Legal Domain Expert / Advisor
+                            </div>
+                            <div class="role-chip">
+                                <div class="dot" style="background:#8B5CF6;"></div>
+                                Full-Stack Product Engineer
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+
+        <div class="slide s11" data-n="12 / 12">
+            <div class="label-tag">The Ask</div>
+            <h2 class="slide-h">Pre-seed round to build<br>the engine and prove it<br>in <span style="color:#60A5FA;">the wild.</span></h2>
+
+            <div class="ask-grid">
+                <div class="ask-card">
+                    <div class="ask-num">$X</div>
+                    <div class="ask-title">Pre-seed Target</div>
+                    <div class="ask-body">12–18 months of runway to reach paid pilot metrics and a fundable Series A story.</div>
+                </div>
+                <div class="ask-card">
+                    <div class="ask-num">3</div>
+                    <div class="ask-title">Use of Funds</div>
+                    <div class="ask-body">Core AI engine build · 2–3 design partner pilots · infrastructure and compliance (SOC 2)</div>
+                </div>
+                <div class="ask-card">
+                    <div class="ask-num">↓50%</div>
+                    <div class="ask-title">Success Metric</div>
+                    <div class="ask-body">Demonstrate &gt;50% review cost reduction in live case environments within 12 months of pilot launch.</div>
+                </div>
+            </div>
+
+            <div class="contact">
+                <div class="ctitle">Get in touch</div>
+                <div class="email">shrisha.prof@gmail.com</div>
+            </div>
+
+            <div class="wordmark">
+                <div class="wordmark-dot"></div>
+                <span class="wordmark-text">Praxis</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.querySelectorAll('.slide');
+            let current = 0;
+
+            // Initialize first slide
+            if (slides.length > 0) {
+                slides[0].classList.add('active');
+            }
+
+            const nextSlide = () => {
+                slides[current].classList.remove('active');
+                current = (current + 1) % slides.length;
+                slides[current].classList.add('active');
+            };
+
+            const prevSlide = () => {
+                slides[current].classList.remove('active');
+                current = (current - 1 + slides.length) % slides.length;
+                slides[current].classList.add('active');
+            };
+
+            // Click anywhere to advance
+            document.body.addEventListener('click', () => {
+                nextSlide();
+            });
+
+            // Keyboard navigation
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowRight' || e.key === 'Space' || e.key === 'Enter') {
+                    nextSlide();
+                } else if (e.key === 'ArrowLeft') {
+                    prevSlide();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
