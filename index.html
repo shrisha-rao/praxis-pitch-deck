@@ -68,6 +68,23 @@
             justify-content: center;
         }
 
+        /* ── Progress Bar ── */
+        #progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: rgba(255,255,255,0.06);
+            z-index: 100;
+        }
+        #progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #60A5FA, #A78BFA);
+            transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
         /* ── Slide shell ── */
         .slide {
             position: absolute;
@@ -83,12 +100,16 @@
             border-radius: 8px;
             box-shadow: 0 12px 48px rgba(0, 0, 0, 0.25), 0 2px 8px rgba(0, 0, 0, 0.1);
             
-            /* Presentation Transitions */
+            /* Presentation Transitions — cinematic cross-fade */
             opacity: 0;
             visibility: hidden;
             pointer-events: none;
-            transform: scale(0.97);
-            transition: opacity 0.4s ease, transform 0.4s ease;
+            transform: scale(0.98);
+            backface-visibility: hidden;
+            transition:
+                opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s 0.65s;
         }
 
         .slide.active {
@@ -97,6 +118,10 @@
             pointer-events: auto;
             transform: scale(1);
             z-index: 10;
+            transition:
+                opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+                visibility 0s 0s;
         }
 
         /* slide counter */
@@ -1093,6 +1118,7 @@
 <body>
 
     <p class="nav-hint">12 slides — click anywhere to advance</p>
+    <div id="progress-bar"><div id="progress-fill"></div></div>
 
     <div id="presentation">
         <div class="slide s01" data-n="01 / 11">
@@ -1725,38 +1751,67 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const slides = document.querySelectorAll('.slide');
+            const fill = document.getElementById('progress-fill');
             let current = 0;
+            let transitioning = false;
+            let touchX = 0;
+
+            const updateProgress = () => {
+                if (fill) fill.style.width = ((current + 1) / slides.length * 100) + '%';
+            };
+
+            const goTo = (index) => {
+                if (transitioning || index === current) return;
+                transitioning = true;
+                slides[current].classList.remove('active');
+                current = index;
+                slides[current].classList.add('active');
+                updateProgress();
+                setTimeout(() => { transitioning = false; }, 700);
+            };
 
             // Initialize first slide
             if (slides.length > 0) {
                 slides[0].classList.add('active');
+                updateProgress();
             }
 
             const nextSlide = () => {
-                slides[current].classList.remove('active');
-                current = (current + 1) % slides.length;
-                slides[current].classList.add('active');
+                goTo((current + 1) % slides.length);
             };
 
             const prevSlide = () => {
-                slides[current].classList.remove('active');
-                current = (current - 1 + slides.length) % slides.length;
-                slides[current].classList.add('active');
+                goTo((current - 1 + slides.length) % slides.length);
             };
 
             // Click anywhere to advance
-            document.body.addEventListener('click', () => {
+            document.body.addEventListener('click', (e) => {
+                if (e.target.closest('#progress-bar')) return;
                 nextSlide();
             });
 
             // Keyboard navigation
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'ArrowRight' || e.key === 'Space' || e.key === 'Enter') {
+                    e.preventDefault();
                     nextSlide();
                 } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
                     prevSlide();
                 }
             });
+
+            // Touch/swipe support
+            document.addEventListener('touchstart', (e) => {
+                touchX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            document.addEventListener('touchend', (e) => {
+                const delta = touchX - e.changedTouches[0].screenX;
+                if (Math.abs(delta) > 40) {
+                    delta > 0 ? nextSlide() : prevSlide();
+                }
+            }, { passive: true });
         });
     </script>
 </body>
